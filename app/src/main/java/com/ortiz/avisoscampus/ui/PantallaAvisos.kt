@@ -3,6 +3,7 @@ package com.ortiz.avisoscampus.ui
 import android.Manifest
 import android.content.Intent
 import android.content.IntentFilter
+import android.provider.Settings
 import android.os.Build
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -52,6 +53,7 @@ fun PantallaAvisos(vm: AvisosViewModel) {
     val faltan by vm.faltan.collectAsState()
     val escuchando by vm.escuchandoAvion.collectAsState()
     val avisos by vm.avisos.collectAsState()
+    val mensaje by vm.mensaje.collectAsState()
 
     // Registra el receptor solo mientras el switch está activo y lo quita al salir
     DisposableEffect(escuchando) {
@@ -85,7 +87,7 @@ fun PantallaAvisos(vm: AvisosViewModel) {
     LaunchedEffect(Unit) {
         vm.eventos.collect { aviso ->
             val mostrado = Notificador.mostrar(contexto, aviso)
-            // TODO Paso 8: si no se mostró, avisar al ViewModel
+            if (!mostrado) vm.noSePudoMostrar() // sin permiso: la app no se cierra
         }
     }
 
@@ -118,6 +120,24 @@ fun PantallaAvisos(vm: AvisosViewModel) {
                     }
                 }) {
                     Text("Permitir notificaciones")
+                }
+                // Recuadro de error solo si hay mensaje
+                mensaje?.let { texto ->
+                    Surface(
+                        color = MaterialTheme.colorScheme.errorContainer,
+                        shape = RoundedCornerShape(12.dp),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Column(
+                            modifier = Modifier.padding(12.dp),
+                            verticalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            Text(text = texto, color = MaterialTheme.colorScheme.onErrorContainer)
+                            OutlinedButton(onClick = { abrirAjustes(contexto) }) {
+                                Text("Abrir ajustes")
+                            }
+                        }
+                    }
                 }
             }
             Tarjeta("Avisos") {
@@ -191,4 +211,16 @@ fun EtiquetaPermiso(permiso: PermisoUi) {
             modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp)
         )
     }
+}
+
+/** Abre la pantalla de notificaciones de la app en Ajustes. */
+fun abrirAjustes(contexto: android.content.Context) {
+    val intent = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+        Intent(Settings.ACTION_APP_NOTIFICATION_SETTINGS)
+            .putExtra(Settings.EXTRA_APP_PACKAGE, contexto.packageName)
+    } else {
+        Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS)
+            .setData(android.net.Uri.fromParts("package", contexto.packageName, null))
+    }
+    contexto.startActivity(intent)
 }
