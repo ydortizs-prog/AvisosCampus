@@ -61,6 +61,9 @@ object Notificador {
             .setSmallIcon(R.drawable.ic_notificacion)
             .setContentTitle(aviso.titulo)
             .setContentText(aviso.texto)
+            // Al expandir la notificación se ve el texto completo, sin cortarse
+            .setStyle(NotificationCompat.BigTextStyle().bigText(aviso.texto))
+            .setSubText(aviso.origen.texto) // muestra el origen junto al nombre de la app
             .setPriority(prioridad) // en Android 7 o menos, la prioridad hace el papel del canal
             .setContentIntent(pendiente)
             .setAutoCancel(true) // se quita al tocarla
