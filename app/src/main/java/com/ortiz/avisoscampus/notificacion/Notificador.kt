@@ -19,15 +19,20 @@ import com.ortiz.avisoscampus.model.Aviso
 object Notificador {
 
     const val CANAL = "avisos"
+    const val CANAL_URGENTE = "urgentes"
 
-    // Android 8+ exige un canal para mostrar notificaciones
+    // Android 8+ exige un canal para mostrar notificaciones.
+    // Creamos dos: Avisos (normal) y Urgentes (emergente, aparece arriba de la pantalla)
     fun crearCanal(context: Context) {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            val canal = NotificationChannel(CANAL, "Avisos", NotificationManager.IMPORTANCE_DEFAULT).apply {
+            val avisos = NotificationChannel(CANAL, "Avisos", NotificationManager.IMPORTANCE_DEFAULT).apply {
                 description = "Avisos de AvisosCampus"
             }
+            val urgentes = NotificationChannel(CANAL_URGENTE, "Urgentes", NotificationManager.IMPORTANCE_HIGH).apply {
+                description = "Recordatorios que aparecen como notificación emergente"
+            }
             val manager = context.getSystemService(NotificationManager::class.java)
-            manager.createNotificationChannel(canal) // si ya existe, no hace nada
+            manager.createNotificationChannels(listOf(avisos, urgentes)) // si ya existen, no hace nada
         }
     }
 
@@ -48,11 +53,15 @@ object Notificador {
         val intent = Intent(context, MainActivity::class.java)
         val pendiente = PendingIntent.getActivity(context, 0, intent, PendingIntent.FLAG_IMMUTABLE)
 
-        val notificacion = NotificationCompat.Builder(context, CANAL)
+        // El ViewModel decide si el aviso es urgente; aquí solo elegimos el canal
+        val canal = if (aviso.urgente) CANAL_URGENTE else CANAL
+        val prioridad = if (aviso.urgente) NotificationCompat.PRIORITY_HIGH else NotificationCompat.PRIORITY_DEFAULT
+
+        val notificacion = NotificationCompat.Builder(context, canal)
             .setSmallIcon(R.drawable.ic_notificacion)
             .setContentTitle(aviso.titulo)
             .setContentText(aviso.texto)
-            .setPriority(NotificationCompat.PRIORITY_DEFAULT)
+            .setPriority(prioridad) // en Android 7 o menos, la prioridad hace el papel del canal
             .setContentIntent(pendiente)
             .setAutoCancel(true) // se quita al tocarla
             .build()
