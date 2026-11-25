@@ -42,6 +42,7 @@ import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
 import com.ortiz.avisoscampus.model.PermisoUi
 import com.ortiz.avisoscampus.notificacion.Notificador
+import com.ortiz.avisoscampus.receiver.CargadorReceiver
 import com.ortiz.avisoscampus.receiver.ModoAvionReceiver
 import com.ortiz.avisoscampus.viewmodel.AvisosViewModel
 
@@ -52,6 +53,7 @@ fun PantallaAvisos(vm: AvisosViewModel) {
     val permiso by vm.permiso.collectAsState()
     val faltan by vm.faltan.collectAsState()
     val escuchando by vm.escuchandoAvion.collectAsState()
+    val escuchandoCargador by vm.escuchandoCargador.collectAsState()
     val avisos by vm.avisos.collectAsState()
     val mensaje by vm.mensaje.collectAsState()
 
@@ -65,6 +67,21 @@ fun PantallaAvisos(vm: AvisosViewModel) {
                 IntentFilter(Intent.ACTION_AIRPLANE_MODE_CHANGED),
                 ContextCompat.RECEIVER_NOT_EXPORTED
             )
+            onDispose { contexto.unregisterReceiver(receptor) }
+        } else {
+            onDispose { }
+        }
+    }
+
+    // Mejora: receptor del cargador, con su propio switch. También se quita en onDispose
+    DisposableEffect(escuchandoCargador) {
+        if (escuchandoCargador) {
+            val receptor = CargadorReceiver { conectado -> vm.alCambiarCargador(conectado) }
+            val filtro = IntentFilter().apply {
+                addAction(Intent.ACTION_POWER_CONNECTED)
+                addAction(Intent.ACTION_POWER_DISCONNECTED)
+            }
+            ContextCompat.registerReceiver(contexto, receptor, filtro, ContextCompat.RECEIVER_NOT_EXPORTED)
             onDispose { contexto.unregisterReceiver(receptor) }
         } else {
             onDispose { }
@@ -168,6 +185,13 @@ fun PantallaAvisos(vm: AvisosViewModel) {
                     Switch(
                         checked = escuchando,
                         onCheckedChange = { vm.cambiarEscucha(it) }
+                    )
+                }
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text("Escuchar el cargador", modifier = Modifier.weight(1f))
+                    Switch(
+                        checked = escuchandoCargador,
+                        onCheckedChange = { vm.cambiarEscuchaCargador(it) }
                     )
                 }
             }

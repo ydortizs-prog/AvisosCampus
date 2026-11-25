@@ -4,7 +4,8 @@ package com.ortiz.avisoscampus.model
 enum class Origen(val texto: String) {
     BOTON("Botón"),
     RECORDATORIO("Recordatorio"),
-    MODO_AVION("Modo avión")
+    MODO_AVION("Modo avión"),
+    CARGADOR("Cargador")
 }
 
 // Un aviso del historial
